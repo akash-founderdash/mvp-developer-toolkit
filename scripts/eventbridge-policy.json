@@ -1,0 +1,16 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "batch:SubmitJob"
+            ],
+            "Resource": [
+                "arn:aws:batch:us-east-2:077075375386:job-queue/founderdash-mvp-job-queue",
+                "arn:aws:batch:us-east-2:077075375386:job-definition/founderdash-mvp-job-definition:*",
+                "arn:aws:batch:us-east-2:077075375386:job-definition/founderdash-mvp-job-definition-test:*"
+            ]
+        }
+    ]
+}

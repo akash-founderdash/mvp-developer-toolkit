@@ -1,0 +1,57 @@
+{
+  "name": "mvp-eventbridge-system",
+  "version": "1.3.0",
+  "description": "AWS EventBridge-powered automated MVP development system",
+  "main": "index.js",
+  "scripts": {
+    "test": "cd scripts && ./test-event-debug.sh",
+    "test:eventbridge": "cd scripts && ./eventbridge-test-cli.sh test-all",
+    "send:event": "cd scripts && ./eventbridge-test-cli.sh send",
+    "deploy:infrastructure": "cd infrastructure && terraform apply",
+    "build:container": "cd docker && docker build -t mvp-pipeline:latest .",
+    "push:container": "cd docker && ./push-to-ecr.sh",
+    "logs:batch": "aws logs get-log-events --log-group-name /aws/batch/mvp-pipeline --region us-east-2",
+    "status:jobs": "aws batch list-jobs --job-queue founderdash-mvp-job-queue --region us-east-2",
+    "clean:infrastructure": "cd infrastructure && terraform destroy",
+    "validate:terraform": "cd infrastructure && terraform validate",
+    "plan:infrastructure": "cd infrastructure && terraform plan"
+  },
+  "keywords": [
+    "aws",
+    "eventbridge",
+    "batch",
+    "mvp",
+    "automation",
+    "containerization",
+    "terraform",
+    "devops"
+  ],
+  "author": "FounderDash",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/founderdash/mvp-eventbridge-system.git"
+  },
+  "bugs": {
+    "url": "https://github.com/founderdash/mvp-eventbridge-system/issues"
+  },
+  "homepage": "https://github.com/founderdash/mvp-eventbridge-system#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {},
+  "dependencies": {},
+  "directories": {
+    "doc": "docs",
+    "test": "scripts"
+  },
+  "files": [
+    "infrastructure/**/*",
+    "docker/**/*",
+    "lambda/**/*", 
+    "scripts/**/*",
+    "docs/**/*",
+    "README.md",
+    "LICENSE"
+  ]
+}

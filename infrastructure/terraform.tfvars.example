@@ -1,0 +1,18 @@
+# AWS Configuration
+aws_region = "us-east-1"
+
+# Project Configuration
+project_name = "mvp-pipeline"
+environment  = "prod"
+
+# Container Configuration
+container_image = "your-account.dkr.ecr.us-east-1.amazonaws.com/mvp-pipeline:latest"
+
+# Secrets Configuration
+github_token_secret_name    = "mvp-pipeline/github-token"
+vercel_token_secret_name    = "mvp-pipeline/vercel-token"
+claude_api_key_secret_name  = "mvp-pipeline/claude-api-key"
+
+# GitHub Configuration
+github_username = "founderdash-bot"
+template_repo   = "founderdash/event-engagement-toolkit"
