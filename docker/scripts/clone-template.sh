@@ -2,8 +2,43 @@
 
 set -euo pipefail
 
+# Ensure JOB_ID is set (fallback to environment or AWS Batch Job ID)
+if [ -z "${JOB_ID:-}" ]; then
+    if [ -n "${AWS_BATCH_JOB_ID:-}" ]; then
+        export JOB_ID="$AWS_BATCH_JOB_ID"
+    else
+        export JOB_ID="clone-template-job-$(date +%s)"
+    fi
+fi
+
+echo "DEBUG: JOB_ID is set to: $JOB_ID"
+
+# Set default values for required variables if not already set
+TEMPLATE_REPO="${TEMPLATE_REPO:-Appemout/event-engagement-toolkit}"
+TEMPLATE_BRANCH="${TEMPLATE_BRANCH:-feature/mvp-from-cc-03}"
+BUSINESS_NAME="${BUSINESS_NAME:-Test Business}"
+PRODUCT_DESCRIPTION="${PRODUCT_DESCRIPTION:-A test MVP project}"
+
+# Generate unique repository name using timestamp, random string, and business name
+if [ -z "${REPO_NAME:-}" ]; then
+    # Sanitize business name for repo naming
+    sanitized_business=$(echo "$BUSINESS_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g')
+    timestamp=$(date +%s)
+    random_suffix=$(openssl rand -hex 4 2>/dev/null || echo $RANDOM | md5sum | cut -c 1-8)
+    REPO_NAME="${sanitized_business}-mvp-${timestamp}-${random_suffix}"
+fi
+
+SANITIZED_NAME="${SANITIZED_NAME:-$(echo "$REPO_NAME" | sed 's/[^a-z0-9-]//g')}"
+GITHUB_USERNAME="${GITHUB_USERNAME:-founderdash-bot}"
+
+echo "DEBUG: Environment variables:"
+echo "  TEMPLATE_REPO: $TEMPLATE_REPO"
+echo "  TEMPLATE_BRANCH: $TEMPLATE_BRANCH"
+echo "  BUSINESS_NAME: $BUSINESS_NAME"
+echo "  REPO_NAME: $REPO_NAME"
+
 # Configuration
-TEMPLATE_REPO="${TEMPLATE_REPO:-founderdash/event-engagement-toolkit}"
+TEMPLATE_REPO="${TEMPLATE_REPO:-Appemout/event-engagement-toolkit}"
 CLONE_DIR="/workspace/template"
 PROJECT_DIR="/workspace/project"
 MAX_RETRIES=3
@@ -38,10 +73,12 @@ handle_error() {
     local exit_code=$?
     log_error "Template cloning failed with exit code $exit_code"
     
-    # Update job status
-    python3 /app/scripts/update-job-status.py \
-        --job-id "$JOB_ID" \
-        --error "Failed to clone template repository" || true
+    # Update job status only if JOB_ID is available
+    if [ -n "${JOB_ID:-}" ]; then
+        python3 /app/scripts/update-job-status.py \
+            --job-id "$JOB_ID" \
+            --error "Failed to clone template repository" || true
+    fi
     
     exit $exit_code
 }
@@ -71,11 +108,11 @@ retry_with_backoff() {
     return 1
 }
 
-# Setup Git authentication
+# Setup Git authentication  
 setup_git_auth() {
     log_info "Setting up Git authentication"
     
-    # Get GitHub token from AWS Secrets Manager
+    # For now, use HTTPS with token (more reliable than SSH in container)
     if [ -n "${GITHUB_TOKEN_SECRET:-}" ]; then
         log_info "Retrieving GitHub token from Secrets Manager"
         
@@ -86,13 +123,17 @@ setup_git_auth() {
             --output text 2>/dev/null || echo "")
         
         if [ -n "$github_token" ]; then
-            # Configure Git to use token authentication
-            git config --global credential.helper store
-            echo "https://oauth2:${github_token}@github.com" > ~/.git-credentials
+            log_info "GitHub token retrieved successfully (length: ${#github_token} characters)"
             
-            # Set Git user (required for commits)
+            # Export token for use in URLs
+            export GITHUB_TOKEN="$github_token"
+            
+            # Configure Git globally
             git config --global user.name "FounderDash Bot"
             git config --global user.email "bot@founderdash.com"
+            
+            # Configure Git to use token for GitHub
+            git config --global url."https://${github_token}@github.com/".insteadOf "https://github.com/"
             
             log_info "Git authentication configured successfully"
         else
@@ -122,11 +163,37 @@ clone_template() {
     mkdir -p "$(dirname "$CLONE_DIR")"
     mkdir -p "$(dirname "$PROJECT_DIR")"
     
-    # Clone template repository
-    local clone_cmd="git clone --depth 1 https://github.com/$TEMPLATE_REPO.git '$CLONE_DIR'"
+    # Clone template repository using HTTPS with token
+    local clone_url="https://github.com/$TEMPLATE_REPO.git"
+    if [ -n "${GITHUB_TOKEN:-}" ]; then
+        clone_url="https://${GITHUB_TOKEN}@github.com/$TEMPLATE_REPO.git"
+    fi
+    
+    local clone_cmd="git clone '$clone_url' '$CLONE_DIR'"
     
     if retry_with_backoff "$clone_cmd"; then
         log_info "Template repository cloned successfully"
+        
+        # Checkout the specific branch '$TEMPLATE_BRANCH'
+        cd "$CLONE_DIR"
+        log_info "Checking out branch: $TEMPLATE_BRANCH"
+        
+        local checkout_cmd="git checkout $TEMPLATE_BRANCH"
+        if retry_with_backoff "$checkout_cmd"; then
+            log_info "Successfully checked out branch: $TEMPLATE_BRANCH"
+        else
+            log_error "Failed to checkout branch $TEMPLATE_BRANCH, using default branch"
+            # Continue with default branch if checkout fails
+        fi
+
+        # Remove app/web directory if it exists (to allow fresh app generation)
+        if [ -d "$PROJECT_DIR/app/web" ]; then
+            log_info "Removing existing app/web directory to allow fresh app generation"
+            rm -rf "$PROJECT_DIR/app/web"
+        fi
+        
+        # Return to original directory
+        cd - > /dev/null
     else
         log_error "Failed to clone template repository"
         return 1
@@ -137,16 +204,34 @@ clone_template() {
 create_fresh_project() {
     log_info "Creating fresh project from template"
     
-    # Copy template to project directory (excluding .git)
+    # Ensure project directory exists
+    mkdir -p "$PROJECT_DIR"
+    
+    # Copy template to project directory (excluding .git and app/web)
     cp -r "$CLONE_DIR"/* "$PROJECT_DIR/" 2>/dev/null || true
     cp -r "$CLONE_DIR"/.[^.]* "$PROJECT_DIR/" 2>/dev/null || true
     
     # Remove .git directory to start fresh
     rm -rf "$PROJECT_DIR/.git"
     
+    # Remove app/web directory if it exists (to allow fresh app generation)
+    if [ -d "$PROJECT_DIR/app/web" ]; then
+        log_info "Removing existing app/web directory to allow fresh app generation"
+        rm -rf "$PROJECT_DIR/app/web"
+    fi
+    
+    # Verify files were copied
+    log_info "Verifying template files were copied"
+    if [ "$(find "$PROJECT_DIR" -type f | wc -l)" -eq 0 ]; then
+        log_error "No files found in project directory after copying template"
+        return 1
+    fi
+    
+    log_info "Found $(find "$PROJECT_DIR" -type f | wc -l) files in project directory"
+    
     # Initialize fresh git repository
     cd "$PROJECT_DIR"
-    git init
+    git init -b main
     git config user.name "FounderDash Bot"
     git config user.email "bot@founderdash.com"
     
@@ -179,8 +264,20 @@ create_github_repository() {
         # Store repository URL for later use
         echo "$repo_url" > /workspace/repo_url.txt
         
-        # Add remote origin
-        git remote add origin "https://github.com/${GITHUB_USERNAME:-founderdash-bot}/$REPO_NAME.git"
+        # Update DynamoDB with repository information
+        python3 /app/scripts/update-job-status.py \
+            --job-id "$JOB_ID" \
+            --repo-url "$repo_url" \
+            --repo-name "$REPO_NAME" || true
+        
+        log_info "Repository information stored in DynamoDB"
+        
+        # Extract the correct username from the repository URL
+        local repo_owner
+        repo_owner=$(echo "$repo_url" | sed 's|https://github.com/||' | cut -d'/' -f1)
+        
+        # Add remote origin using the correct owner
+        git remote add origin "https://github.com/$repo_owner/$REPO_NAME.git"
         
         return 0
     else
@@ -193,7 +290,16 @@ create_github_repository() {
 customize_template() {
     log_info "Customizing template with business information"
     
+    # Ensure we're in the project directory
     cd "$PROJECT_DIR"
+    log_info "Current directory: $(pwd)"
+    
+    # Verify we're in the project root (not in .git directory)
+    if [ ! -d ".git" ]; then
+        log_info "Git repository not found in current directory: $(pwd), changing to project directory"
+        cd "$PROJECT_DIR"
+        log_info "Changed to project directory: $(pwd)"
+    fi
     
     # Update package.json
     if [ -f "package.json" ]; then
@@ -251,7 +357,31 @@ EOF
     fi
     
     # Create initial commit
+    log_info "Adding files to git repository"
+    
+    # Double-check we're in the project root directory
+    if [ "$(pwd)" != "$PROJECT_DIR" ]; then
+        log_info "Not in project directory. Expected: $PROJECT_DIR, Current: $(pwd)"
+        cd "$PROJECT_DIR"
+        log_info "Changed to project directory: $(pwd)"
+    fi
+    
+    # Verify project files exist in current directory
+    log_info "Files in current directory:"
+    ls -la . | head -10
+    
     git add .
+    
+    # Verify files were staged
+    local staged_files=$(git diff --cached --name-only | wc -l)
+    log_info "Staged $staged_files files for commit"
+    
+    if [ "$staged_files" -eq 0 ]; then
+        log_error "No files staged for commit. Listing project directory contents:"
+        ls -la "$PROJECT_DIR"
+        return 1
+    fi
+    
     git commit -m "Initial commit: $BUSINESS_NAME MVP
 
 Generated by FounderDash
@@ -266,7 +396,16 @@ Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
 push_to_github() {
     log_info "Pushing code to GitHub"
     
+    # Ensure we're in the project directory (not in .git or any subdirectory)
     cd "$PROJECT_DIR"
+    log_info "Current directory: $(pwd)"
+    
+    # Verify we're in the git repository root
+    if [ ! -f ".git/HEAD" ]; then
+        log_info "Not in git repository root. Current directory: $(pwd), changing to project directory"
+        cd "$PROJECT_DIR"
+        log_info "Changed to project directory: $(pwd)"
+    fi
     
     # Update progress
     python3 /app/scripts/update-job-status.py \

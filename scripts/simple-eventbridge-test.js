@@ -9,12 +9,12 @@ const AWS = require('aws-sdk');
 
 // Configure AWS SDK
 const eventBridge = new AWS.EventBridge({
-    region: process.env.AWS_REGION || 'us-east-1',
+    region: process.env.AWS_REGION || 'us-east-2',
     // AWS credentials should be in environment variables or AWS config
 });
 
 const dynamodb = new AWS.DynamoDB.DocumentClient({
-    region: process.env.AWS_REGION || 'us-east-1'
+    region: process.env.AWS_REGION || 'us-east-2'
 });
 
 /**
@@ -52,7 +52,7 @@ async function sendTestEvent() {
         };
 
         await dynamodb.put({
-            TableName: process.env.DYNAMODB_TABLE_NAME || 'mvp-development-jobs',
+            TableName: process.env.DYNAMODB_TABLE_NAME || 'mvp-pipeline-development-jobs',
             Item: jobRecord
         }).promise();
 
@@ -98,7 +98,7 @@ async function sendTestEvent() {
         console.log('💡 Next steps:');
         console.log('   1. Check AWS Batch for job execution');
         console.log('   2. Monitor DynamoDB for status updates');
-        console.log(`   3. Query job status: aws dynamodb get-item --table-name ${process.env.DYNAMODB_TABLE_NAME || 'mvp-development-jobs'} --key '{"jobId": {"S": "${jobId}"}}'`);
+        console.log(`   3. Query job status: aws dynamodb get-item --table-name ${process.env.DYNAMODB_TABLE_NAME || 'mvp-pipeline-development-jobs'} --key '{"jobId": {"S": "${jobId}"}}'`);
 
     } catch (error) {
         console.error('❌ Error sending test event:', error);
@@ -122,7 +122,7 @@ async function testDynamoDB() {
     try {
         console.log('🔍 Testing DynamoDB connection...');
         
-        const tableName = process.env.DYNAMODB_TABLE_NAME || 'mvp-development-jobs';
+        const tableName = process.env.DYNAMODB_TABLE_NAME || 'mvp-pipeline-development-jobs';
         
         const result = await dynamodb.describeTable({
             TableName: tableName
@@ -136,7 +136,7 @@ async function testDynamoDB() {
         console.error(`❌ DynamoDB connection failed:`, error.message);
         
         if (error.code === 'ResourceNotFoundException') {
-            console.log(`💡 Table '${process.env.DYNAMODB_TABLE_NAME || 'mvp-development-jobs'}' does not exist. Deploy infrastructure first.`);
+            console.log(`💡 Table '${process.env.DYNAMODB_TABLE_NAME || 'mvp-pipeline-development-jobs'}' does not exist. Deploy infrastructure first.`);
         }
     }
 }
@@ -175,8 +175,8 @@ async function main() {
     console.log('EventBridge MVP Development Test');
     console.log('================================');
     console.log('');
-    console.log(`Region: ${process.env.AWS_REGION || 'us-east-1'}`);
-    console.log(`DynamoDB Table: ${process.env.DYNAMODB_TABLE_NAME || 'mvp-development-jobs'}`);
+    console.log(`Region: ${process.env.AWS_REGION || 'us-east-2'}`);
+    console.log(`DynamoDB Table: ${process.env.DYNAMODB_TABLE_NAME || 'mvp-pipeline-development-jobs'}`);
     console.log(`EventBridge Bus: ${process.env.EVENTBRIDGE_BUS_NAME || 'mvp-development'}`);
     console.log('');
 
@@ -205,10 +205,10 @@ async function main() {
             console.log('  test-all          Test all connections');
             console.log('');
             console.log('Environment Variables:');
-            console.log('  AWS_REGION                AWS region (default: us-east-1)');
+            console.log('  AWS_REGION                AWS region (default: us-east-2)');
             console.log('  AWS_ACCESS_KEY_ID         AWS access key');
             console.log('  AWS_SECRET_ACCESS_KEY     AWS secret key');
-            console.log('  DYNAMODB_TABLE_NAME       DynamoDB table name (default: mvp-development-jobs)');
+            console.log('  DYNAMODB_TABLE_NAME       DynamoDB table name (default: mvp-pipeline-development-jobs)');
             console.log('  EVENTBRIDGE_BUS_NAME      EventBridge bus name (default: mvp-development)');
             console.log('  FOUNDERDASH_DATABASE_URL  FounderDash database URL');
     }

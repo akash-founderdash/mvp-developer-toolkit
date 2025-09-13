@@ -92,6 +92,10 @@ resource "aws_batch_job_definition" "mvp_pipeline_job" {
         value = var.github_token_secret_name
       },
       {
+        name  = "SSH_PRIVATE_KEY_SECRET"
+        value = var.ssh_private_key_secret_name
+      },
+      {
         name  = "VERCEL_TOKEN_SECRET"
         value = var.vercel_token_secret_name
       },
@@ -124,5 +128,16 @@ resource "aws_batch_job_definition" "mvp_pipeline_job" {
 
   tags = {
     Name = "${var.project_name}-job-definition"
+  }
+
+  # Update EventBridge targets when job definition changes
+  provisioner "local-exec" {
+    when    = create
+    command = "../scripts/update-eventbridge-target.sh || true"
+  }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "echo 'Job definition destroyed, manual EventBridge target cleanup may be needed'"
   }
 }

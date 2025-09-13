@@ -40,6 +40,12 @@ variable "claude_api_key_secret_name" {
   default     = "mvp-pipeline/claude-api-key"
 }
 
+variable "ssh_private_key_secret_name" {
+  description = "AWS Secrets Manager secret name for SSH private key"
+  type        = string
+  default     = "founderdash-ssh-private-key"
+}
+
 variable "github_username" {
   description = "GitHub username for repository creation"
   type        = string
@@ -49,7 +55,7 @@ variable "github_username" {
 variable "template_repo" {
   description = "Template repository for MVP development"
   type        = string
-  default     = "founderdash/event-engagement-toolkit"
+  default     = "Appemout/event-engagement-toolkit"
 }
 
 variable "github_token" {

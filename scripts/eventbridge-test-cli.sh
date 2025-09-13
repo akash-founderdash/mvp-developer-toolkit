@@ -9,7 +9,6 @@ set -e
 REGION=${AWS_REGION:-"us-east-2"}
 EVENT_BUS_NAME=${EVENTBRIDGE_BUS_NAME:-"mvp-development"}
 DYNAMODB_TABLE=${DYNAMODB_TABLE_NAME:-"mvp-pipeline-development-jobs"}
-FOUNDERDASH_DB_URL=${FOUNDERDASH_DATABASE_URL:-"postgresql://test:test@localhost:5432/founderdash"}
 
 # Colors for output
 RED='\033[0;31m'
@@ -163,7 +162,7 @@ EOF
         {
             "Source": "founderdash.web",
             "DetailType": "MVP Development Request",
-            "Detail": "{\"jobId\": \"'$JOB_ID'\", \"userId\": \"test_user_123\", \"productId\": \"test_product_456\", \"founderdashDbUrl\": \"'$FOUNDERDASH_DB_URL'\", \"priority\": \"normal\", \"timestamp\": \"'$CURRENT_TIME'\", \"metadata\": {\"businessName\": \"Test Business MVP\", \"estimatedDuration\": 14400, \"features\": [\"authentication\", \"dashboard\", \"payments\"], \"testEvent\": true, \"generatedBy\": \"bash-test-script\"}}",
+            "Detail": "{\"jobId\": \"'$JOB_ID'\", \"userId\": \"test_user_123\", \"productId\": \"test_product_456\", \"priority\": \"normal\", \"timestamp\": \"'$CURRENT_TIME'\", \"metadata\": {\"businessName\": \"Test Business MVP\", \"estimatedDuration\": 14400, \"features\": [\"authentication\", \"dashboard\", \"payments\"], \"testEvent\": true, \"generatedBy\": \"bash-test-script\"}}",
             "EventBusName": "'$EVENT_BUS_NAME'"
         }
     ]' 2>&1); then
@@ -177,7 +176,7 @@ EOF
             echo ""
             echo -e "${BLUE}💡 Next steps:${NC}"
             echo -e "   1. Check AWS Batch for job execution:"
-            echo -e "      ${YELLOW}aws batch list-jobs --job-queue mvp-development-queue --region $REGION${NC}"
+            echo -e "      ${YELLOW}aws batch list-jobs --job-queue mvp-pipeline-job-queue --region $REGION${NC}"
             echo -e "   2. Monitor job status in DynamoDB:"
             echo -e "      ${YELLOW}aws dynamodb get-item --table-name $DYNAMODB_TABLE --key '{\"jobId\": {\"S\": \"$JOB_ID\"}}' --region $REGION${NC}"
             echo -e "   3. Check CloudWatch logs for EventBridge execution"

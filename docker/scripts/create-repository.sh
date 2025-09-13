@@ -172,15 +172,18 @@ prepare_repository_content() {
     cd "$MVP_OUTPUT_DIR"
     
     # Initialize Git repository if not already initialized
+    # Ensure home directory exists for git config
+    mkdir -p "$HOME"
+    
     if [ ! -d ".git" ]; then
         log_info "Initializing Git repository"
         git init
         git branch -M main
     fi
     
-    # Configure Git user
-    git config user.name "MVP Pipeline Bot"
-    git config user.email "mvp-pipeline@example.com"
+    # Configure Git user (use --global to ensure it works)
+    git config --global user.name "MVP Pipeline Bot"
+    git config --global user.email "mvp-pipeline@example.com"
     
     # Create or update README.md
     create_repository_readme
@@ -378,7 +381,8 @@ EOF
 # Add and commit files
 commit_files() {
     log_info "Adding and committing files"
-    
+    log_debug ">Current directory: $(pwd)"
+    log_info ">mvp output dir: $MVP_OUTPUT_DIR"
     cd "$MVP_OUTPUT_DIR"
     
     # Add all files
@@ -388,7 +392,7 @@ commit_files() {
     if git diff --staged --quiet; then
         log_info "No changes to commit"
         return 0
-    fi
+    fi  
     
     # Commit files
     local commit_message="Initial commit: $MVP_NAME MVP

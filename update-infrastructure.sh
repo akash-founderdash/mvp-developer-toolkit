@@ -81,8 +81,15 @@ then
     terraform apply -var-file=terraform.tfvars -auto-approve
     
     echo "Deployment complete!"
+    
+    # Update EventBridge target with latest job definition revision
+    echo "Updating EventBridge targets..."
+    cd ..
+    ./scripts/update-eventbridge-target.sh
+    
     echo "Your infrastructure has been updated with the secrets from .env.local"
     echo "AWS Batch jobs now have access to the required environment variables."
+    echo "EventBridge targets have been updated to use the latest job definition revision."
 else
     echo "Deployment cancelled."
 fi

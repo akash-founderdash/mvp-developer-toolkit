@@ -6,7 +6,33 @@ set -euo pipefail
 SCRIPT_DIR="/app/scripts"
 WORKSPACE_DIR="/workspace"
 LOG_LEVEL="${LOG_LEVEL:-INFO}"
-JOB_ID="${JOB_ID:-${AWS_BATCH_JOB_ID:-$(date +%s)}}"
+
+#!/bin/bash
+set -e
+
+echo "Starting MVP Pipeline..."
+echo "DEBUG: Environment variables:"
+env | grep -E "(JOB|BATCH)" || echo "No JOB/BATCH environment variables found"
+
+# Check multiple locations for job ID input from EventBridge
+# Method 1: Check if JOB_ID environment variable is already set (from Batch parameters)
+if [[ -n "${JOB_ID:-}" && "${JOB_ID}" != "default-job" ]]; then
+    echo "Using Job ID from environment variable: $JOB_ID"
+elif [[ -n "${AWS_BATCH_JOB_ID:-}" ]]; then
+    # Use AWS_BATCH_JOB_ID as the job ID
+    JOB_ID="$AWS_BATCH_JOB_ID"
+    echo "Using AWS Batch Job ID: $JOB_ID"
+elif [[ "$AWS_BATCH_JOB_NAME" =~ job-(.+) ]]; then
+    # Extract from job name pattern
+    JOB_ID="${BASH_REMATCH[1]}"
+    echo "Extracted Job ID from job name pattern: $JOB_ID"
+else
+    # Final fallback
+    JOB_ID="default-job"
+    echo "Using default Job ID: $JOB_ID"
+fi
+
+echo "Final Job ID: $JOB_ID"
 
 # Pipeline stages
 STAGE_INIT="INIT"
@@ -258,11 +284,29 @@ main() {
     parse_arguments
     fetch_job_data
     
+    # Export variables for child scripts (after job data is loaded)
+    export JOB_ID
+    export USER_ID
+    export PRODUCT_ID
+    export BUSINESS_NAME
+    export PRODUCT_DESCRIPTION
+    export REPO_NAME
+    export SANITIZED_NAME
+    export LOG_LEVEL
+    export DYNAMODB_TABLE
+    export COMPLETION_TOPIC
+    export GITHUB_TOKEN_SECRET
+    export SSH_PRIVATE_KEY_SECRET
+    export VERCEL_TOKEN_SECRET
+    export CLAUDE_API_KEY_SECRET
+    export GITHUB_USERNAME
+    export TEMPLATE_REPO
+    
     # Execute pipeline stages
     execute_stage "$STAGE_CLONE" "clone-template.sh"
     execute_stage "$STAGE_CLAUDE_INSTALL" "install-claude.sh"
     execute_stage "$STAGE_DEVELOP" "develop-mvp.sh"
-    execute_stage "$STAGE_BUILD" "build-project.sh"
+    # execute_stage "$STAGE_BUILD" "build-project.sh"
     execute_stage "$STAGE_DEPLOY" "deploy-vercel.sh"
     
     # Get URLs from stage outputs

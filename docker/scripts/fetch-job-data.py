@@ -20,30 +20,69 @@ def fetch_job_data(job_id, output_dir):
         
         job_data = response['Item']
         
-        # Create MVP specifications markdown
-        mvp_specs = f"""# MVP Specifications for {job_data['product']['name']}
+        # Extract business name from the flat structure
+        business_name = job_data.get('businessName', 'Unknown Business')
+        user_id = job_data.get('userId', 'unknown')
+        product_id = job_data.get('productId', 'unknown')
+        
+        # Create a sanitized repository name
+        sanitized_name = business_name.lower().replace(' ', '-').replace('_', '-')
+        repo_name = f"{sanitized_name}-mvp"
+        
+        # Create MVP specifications markdown using available data
+        mvp_specs = f"""# MVP Specifications for {business_name}
 
 ## Business Overview
-- **Business Name**: {job_data['product']['name']}
-- **Tagline**: {job_data['product']['tagline']}
-- **Description**: {job_data['product']['description']}
-- **Target Audience**: {job_data['specifications']['targetAudience']}
+- **Business Name**: {business_name}
+- **Description**: Modern web application for {business_name}
+- **Repository Name**: {repo_name}
 
-## Key Features
-{chr(10).join(['- ' + feature for feature in job_data['specifications']['keyFeatures']])}
+## Key Features (Default MVP Features)
+- User authentication and registration
+- Dashboard interface
+- Basic CRUD operations
+- Responsive design
+- Modern UI/UX
 
 ## Technical Requirements
-{json.dumps(job_data['specifications']['technicalRequirements'], indent=2)}
-
-## Design Preferences  
-{json.dumps(job_data['specifications']['designPreferences'], indent=2)}
+- Frontend: React/Next.js with TypeScript
+- Backend: Node.js with Express
+- Database: PostgreSQL or MongoDB
+- Styling: Tailwind CSS
+- Deployment: Vercel
 
 ## Development Guidelines
-{job_data['specifications']['mvpSpecs']}
+Create a modern, responsive web application with clean code architecture and user-friendly interface.
 """
 
         # Create development instructions
-        dev_instructions = job_data['development']['developmentPrompts']
+        dev_instructions = f"""# Development Instructions for {business_name}
+
+## Overview
+Build a modern MVP web application for {business_name} using best practices and modern technologies.
+
+## Key Requirements:
+1. Create a clean, professional interface
+2. Implement user authentication
+3. Build responsive design for mobile and desktop
+4. Use TypeScript for type safety
+5. Follow React/Next.js best practices
+6. Implement proper error handling
+7. Add basic testing
+
+## Tech Stack:
+- Next.js 14+ with TypeScript
+- Tailwind CSS for styling
+- Prisma for database management
+- NextAuth.js for authentication
+- Vercel for deployment
+
+## Deliverables:
+1. Complete source code
+2. README with setup instructions
+3. Deployed application on Vercel
+4. Basic documentation
+"""
         
         # Write files for Claude Code
         os.makedirs(output_dir, exist_ok=True)
@@ -61,16 +100,16 @@ def fetch_job_data(job_id, output_dir):
         # Create environment variables for bash script
         with open(f"{output_dir}/job-env.sh", "w") as f:
             f.write(f"""#!/bin/bash
-export BUSINESS_NAME="{job_data['product']['name']}"
-export REPO_NAME="{job_data['resources']['githubRepo']['name']}"
-export PRODUCT_DESCRIPTION="{job_data['product']['description']}"
-export USER_EMAIL="{job_data['user']['email']}"
-export SANITIZED_NAME="{job_data['product']['sanitizedName']}"
-export USER_ID="{job_data['user']['id']}"
-export PRODUCT_ID="{job_data['product']['id']}"
+export BUSINESS_NAME="{business_name}"
+export REPO_NAME="{repo_name}"
+export PRODUCT_DESCRIPTION="Modern web application for {business_name}"
+export USER_EMAIL="user@{sanitized_name}.com"
+export SANITIZED_NAME="{sanitized_name}"
+export USER_ID="{user_id}"
+export PRODUCT_ID="{product_id}"
 """)
         
-        print(f"✅ Job data fetched successfully for {job_data['product']['name']}")
+        print(f"✅ Job data fetched successfully for {business_name}")
         
     except Exception as e:
         print(f"❌ Error fetching job data: {str(e)}")

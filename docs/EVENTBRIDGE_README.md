@@ -288,7 +288,7 @@ node tooling/scripts/eventbridge-test-cli.js \\
   --product-id test-product
 
 # Check if batch job was created
-aws batch list-jobs --job-queue mvp-development-queue
+aws batch list-jobs --job-queue mvp-pipeline-job-queue
 ```
 
 ## Troubleshooting

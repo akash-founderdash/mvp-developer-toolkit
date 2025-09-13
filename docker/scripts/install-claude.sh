@@ -50,70 +50,76 @@ create_directories() {
     mkdir -p "$CLAUDE_CONFIG_DIR"
 }
 
-# Download and install Claude Code
-install_claude_code() {
-    log "Installing Claude Code CLI..."
-    
-    # For now, we'll use a placeholder installation
-    # In a real implementation, this would download the actual Claude Code CLI
-    # Since Claude Code CLI doesn't exist as a standalone tool, we'll create a mock
-    
-    cat > "$CLAUDE_INSTALL_DIR/claude-code" << 'EOF'
-#!/bin/bash
-
-# Mock Claude Code CLI
-# This is a placeholder implementation
-
-set -euo pipefail
-
-COMMAND="$1"
-shift
-
-case "$COMMAND" in
-    "develop")
-        echo "Starting Claude Code development..."
-        echo "Spec: $1"
-        
-        # Simulate development process
-        echo "Analyzing requirements..."
-        sleep 2
-        echo "Generating code structure..."
-        sleep 3
-        echo "Implementing features..."
-        sleep 5
-        echo "Running tests..."
-        sleep 2
-        echo "Code generation completed successfully!"
-        ;;
-    "version")
-        echo "claude-code version 1.0.0 (mock)"
-        ;;
-    "help"|"--help"|"-h")
-        echo "Claude Code CLI - Mock Implementation"
-        echo "Usage: claude-code <command> [options]"
-        echo ""
-        echo "Commands:"
-        echo "  develop <spec>  Generate code based on specification"
-        echo "  version         Show version information"
-        echo "  help           Show this help message"
-        ;;
-    *)
-        echo "Unknown command: $COMMAND"
-        echo "Use 'claude-code help' for usage information"
-        exit 1
-        ;;
-esac
-EOF
-
-    chmod +x "$CLAUDE_INSTALL_DIR/claude-code"
-    
-    # Add to PATH
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> /home/mvpuser/.bashrc
+# Step 1: Skip system installation (Node.js and npm already available in container)
+install_nodejs_npm() {
+    log "Step 1: Skipping Node.js/npm installation (already available in container)..."
+    log "Node.js and npm are pre-installed in the container environment"
 }
 
-# Configure Claude Code
-configure_claude_code() {
-    log "Configuring Claude Code..."
+# Step 2: Check if installation was successful
+verify_nodejs_npm() {
+    log "Step 2: Verifying Node.js and npm installation..."
+    
+    # Check Node.js version
+    log "Running: node -v"
+    local node_version=$(node -v)
+    log "Node.js version: $node_version"
+    
+    # Check npm version
+    log "Running: npm -v"
+    local npm_version=$(npm -v)
+    log "npm version: $npm_version"
+    
+    # Verify both are working
+    if command -v node >/dev/null 2>&1 && command -v npm >/dev/null 2>&1; then
+        log "Node.js and npm verification successful"
+        return 0
+    else
+        log "ERROR: Node.js or npm verification failed"
+        return 1
+    fi
+}
+
+# Step 3: Install Claude using npm without sudo (container environment)
+install_claude_via_npm() {
+    log "Step 3: Installing Claude Code CLI via npm (without sudo)..."
+    
+    # Set npm to install globally in user directory to avoid permission issues
+    export NPM_CONFIG_PREFIX=/home/mvpuser/.npm-global
+    mkdir -p /home/mvpuser/.npm-global
+    
+    # Add to PATH for this session
+    export PATH=/home/mvpuser/.npm-global/bin:$PATH
+    
+    # Install claude using npm without sudo
+    log "Running: npm install -g @anthropic-ai/claude-code"
+    npm install -g @anthropic-ai/claude-code
+    
+    # Make the PATH change permanent
+    echo 'export NPM_CONFIG_PREFIX=/home/mvpuser/.npm-global' >> /home/mvpuser/.bashrc
+    echo 'export PATH=/home/mvpuser/.npm-global/bin:$PATH' >> /home/mvpuser/.bashrc
+}
+
+# Step 4: Check if Claude got installed
+verify_claude_installation() {
+    log "Step 4: Verifying Claude installation..."
+    
+    # Check Claude version
+    log "Running: claude --version"
+    if command -v claude >/dev/null 2>&1; then
+        local claude_version=$(claude --version 2>/dev/null || echo "Version check failed")
+        log "Claude version: $claude_version"
+        log "Claude installation verification successful"
+        return 0
+    else
+        log "ERROR: Claude installation verification failed - command not found"
+        return 1
+    fi
+}
+
+# Step 5: Set necessary environment variables dynamically
+setup_claude_environment() {
+    log "Step 5: Setting up Claude environment variables..."
     
     # Get API key from AWS Secrets Manager
     if [ -n "${CLAUDE_API_KEY_SECRET:-}" ]; then
@@ -124,43 +130,83 @@ configure_claude_code() {
             --output text 2>/dev/null || echo "")
         
         if [ -n "$CLAUDE_API_KEY" ]; then
-            # Create config file
-            cat > "$CLAUDE_CONFIG_DIR/config.json" << EOF
-{
-    "api_key": "$CLAUDE_API_KEY",
-    "model": "claude-3-sonnet-20240229",
-    "max_tokens": 4000,
-    "temperature": 0.1
-}
-EOF
-            log "Claude Code configured successfully"
+            # Export environment variables
+            export ANTHROPIC_API_KEY="$CLAUDE_API_KEY"
+            export ANTHROPIC_MODEL="claude-sonnet-4-20250514"
+            
+            log "Environment variables set:"
+            log "ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:0:20}..."
+            log "ANTHROPIC_MODEL: $ANTHROPIC_MODEL"
+            
+            # Make these available to other scripts
+            echo "export ANTHROPIC_API_KEY=\"$CLAUDE_API_KEY\"" >> /home/mvpuser/.bashrc
+            echo "export ANTHROPIC_MODEL=\"claude-sonnet-4-20250514\"" >> /home/mvpuser/.bashrc
         else
-            log "WARNING: Could not retrieve Claude API key from Secrets Manager"
+            log "ERROR: Could not retrieve Claude API key from Secrets Manager"
+            return 1
         fi
     else
-        log "WARNING: CLAUDE_API_KEY_SECRET environment variable not set"
+        log "ERROR: CLAUDE_API_KEY_SECRET environment variable not set"
+        return 1
     fi
+}
+
+# Step 6: Update Claude permissions
+setup_claude_permissions() {
+    log "Step 6: Setting up Claude permissions..."
+    
+    # Create .claude directory in project root if it doesn't exist
+    local project_root="/workspace"
+    local claude_settings_dir="$project_root/.claude"
+    local settings_file="$claude_settings_dir/settings.local.json"
+    
+    # Create directory
+    mkdir -p "$claude_settings_dir"
+    
+    # Create settings.local.json with bypass permissions
+    cat > "$settings_file" << 'EOF'
+{
+    "permissions": {
+        "defaultMode": "bypassPermissions"
+    }
+}
+EOF
+    
+    log "Created Claude permissions file: $settings_file"
+    log "Permissions set to bypass mode"
+}
+
+# Download and install Claude Code
+install_claude_code() {
+    log "Starting Claude Code installation process..."
+    
+    # Execute all steps in sequence
+    install_nodejs_npm
+    verify_nodejs_npm
+    install_claude_via_npm  
+    verify_claude_installation
+    setup_claude_environment
+    log "Claude Code installation process completed successfully!"
+}
+
+# Configure Claude Code (deprecated - now handled in install_claude_code)
+configure_claude_code() {
+    log "Claude configuration is now handled during installation..."
+    return 0
 }
 
 # Verify installation
 verify_installation() {
     log "Verifying Claude Code installation..."
     
-    # Add to current PATH for verification
-    export PATH="$CLAUDE_INSTALL_DIR:$PATH"
-    
-    if command -v claude-code >/dev/null 2>&1; then
-        local version=$(claude-code version)
+    # Check if claude command is available
+    if command -v claude >/dev/null 2>&1; then
+        local version=$(claude --version 2>/dev/null || echo "Version check completed")
         log "Claude Code installed successfully: $version"
         
         # Test basic functionality
-        if claude-code help >/dev/null 2>&1; then
-            log "Claude Code verification completed successfully"
-            return 0
-        else
-            log "ERROR: Claude Code help command failed"
-            return 1
-        fi
+        log "Claude installation verification completed successfully"
+        return 0
     else
         log "ERROR: Claude Code not found in PATH"
         return 1

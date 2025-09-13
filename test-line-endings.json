@@ -1,0 +1,8 @@
+[
+  {
+    "Source": "founderdash.web",
+    "DetailType": "MVP Development Request",
+    "Detail": "{\"userId\":\"test-user-123\",\"businessName\":\"Line Endings Test\",\"description\":\"Testing that line endings are fixed in container\",\"requirements\":\"Simple test app with Next.js\"}",
+    "EventBusName": "mvp-development"
+  }
+]

@@ -220,7 +220,7 @@ app.get('/api/mvp/status/:jobId', async (req, res) => {
     },
     "Targets": [{
       "Id": "BatchJobTarget", 
-      "Arn": "arn:aws:batch:region:account:jobQueue/mvp-development-queue",
+      "Arn": "arn:aws:batch:region:account:jobQueue/mvp-pipeline-job-queue",
       "BatchParameters": {
         "JobName": "mvp-dev-$.detail.jobId",
         "JobDefinition": "claude-code-development"

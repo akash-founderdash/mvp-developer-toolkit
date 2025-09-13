@@ -7,8 +7,8 @@ MVP_OUTPUT_DIR="/workspace/mvp"
 MAX_RETRIES=3
 RETRY_DELAY=10
 
-# Arguments
-MVP_NAME="$1"
+# Use environment variables (set by pipeline)
+MVP_NAME="${BUSINESS_NAME:-Unknown Business}"
 
 # Derived variables
 PROJECT_NAME=$(echo "$MVP_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9]/-/g' | sed 's/--*/-/g' | sed 's/^-\|-$//g')

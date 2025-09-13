@@ -47,7 +47,7 @@ fi
 
 echo ""
 echo -e "${YELLOW}🏗️ Building Docker image...${NC}"
-docker build -t $REPOSITORY_NAME:$IMAGE_TAG .
+docker build -t $REPOSITORY_NAME:$IMAGE_TAG docker/
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ Docker image built successfully${NC}"

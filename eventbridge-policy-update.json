@@ -1,0 +1,15 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "batch:SubmitJob"
+            ],
+            "Resource": [
+                "arn:aws:batch:us-east-2:077075375386:job-queue/mvp-pipeline-job-queue",
+                "arn:aws:batch:us-east-2:077075375386:job-definition/mvp-pipeline-job-definition:*"
+            ]
+        }
+    ]
+}

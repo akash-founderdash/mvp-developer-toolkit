@@ -5,8 +5,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV NODE_VERSION=20
 ENV PNPM_VERSION=9.3.0
 
-# Create non-root user
-RUN groupadd -r mvpuser && useradd -r -g mvpuser -s /bin/bash mvpuser
+# Create non-root user and set up home directory
+RUN groupadd -r mvpuser && useradd -r -g mvpuser -s /bin/bash mvpuser -m
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \

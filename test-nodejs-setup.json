@@ -1,0 +1,8 @@
+[
+  {
+    "Source": "founderdash.web",
+    "DetailType": "MVP Development Request",
+    "Detail": "{\"jobId\":\"test-nodejs-install-123\",\"businessName\":\"Test Node Setup Business\",\"businessDomain\":\"Software Development\",\"targetAudience\":\"Developers\",\"problemStatement\":\"We need to verify that Node.js and npm are properly installed before Claude setup\",\"features\":[\"Landing page\",\"User dashboard\"],\"techStack\":{\"frontend\":\"Next.js\",\"backend\":\"Node.js\",\"database\":\"PostgreSQL\"}}",
+    "EventBusName": "mvp-development"
+  }
+]

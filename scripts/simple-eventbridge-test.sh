@@ -8,7 +8,7 @@ set -e
 # Configuration
 REGION="us-east-2"
 EVENT_BUS_NAME="mvp-development"
-DYNAMODB_TABLE="founderdash-mvp-development-jobs"
+DYNAMODB_TABLE="mvp-pipeline-development-jobs"
 
 # Colors
 GREEN='\033[0;32m'

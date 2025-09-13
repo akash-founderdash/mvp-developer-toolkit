@@ -7,10 +7,16 @@ help:
 	@echo "MVP EventBridge System Commands:"
 	@echo ""
 	@echo "Infrastructure:"
-	@echo "  deploy     - Deploy infrastructure with Terraform"
-	@echo "  validate   - Validate Terraform configuration" 
-	@echo "  plan       - Show Terraform plan"
-	@echo "  clean      - Destroy infrastructure"
+	@echo "  deploy        - Deploy infrastructure with Terraform"
+	@echo "  deploy-all    - Deploy infrastructure and update EventBridge"
+	@echo "  validate      - Validate Terraform configuration" 
+	@echo "  plan          - Show Terraform plan"
+	@echo "  clean         - Destroy infrastructure"
+	@echo ""
+	@echo "EventBridge:"
+	@echo "  update-eventbridge - Update EventBridge targets with latest job definition"
+	@echo "  eb-rules      - List EventBridge rules"
+	@echo "  eb-targets    - List EventBridge targets"
 	@echo ""
 	@echo "Container:"
 	@echo "  build      - Build Docker container"
@@ -103,3 +109,11 @@ eb-rules:
 
 eb-targets:
 	@aws events list-targets-by-rule --rule founderdash-mvp-development-rule --event-bus-name mvp-development --region us-east-2 --output table
+
+update-eventbridge:
+	@echo "Updating EventBridge targets with latest job definition..."
+	@chmod +x scripts/update-eventbridge-target.sh && ./scripts/update-eventbridge-target.sh
+
+deploy-all:
+	@echo "Deploying infrastructure and updating EventBridge..."
+	@chmod +x update-infrastructure.sh && ./update-infrastructure.sh

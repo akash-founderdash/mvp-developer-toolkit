@@ -39,8 +39,11 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "devDependencies": {},
-  "dependencies": {},
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.879.0",
+    "@aws-sdk/client-eventbridge": "^3.879.0",
+    "aws-sdk": "^2.1692.0"
+  },
   "directories": {
     "doc": "docs",
     "test": "scripts"
@@ -48,7 +51,7 @@
   "files": [
     "infrastructure/**/*",
     "docker/**/*",
-    "lambda/**/*", 
+    "lambda/**/*",
     "scripts/**/*",
     "docs/**/*",
     "README.md",

@@ -96,7 +96,7 @@ AWS_ACCOUNT_ID=$account_id
 SNS_COMPLETION_TOPIC_ARN=arn:aws:sns:$aws_region:$account_id:mvp-completion
 
 # Optional: AWS Batch Settings (for reference)
-BATCH_JOB_QUEUE=mvp-development-queue
+BATCH_JOB_QUEUE=mvp-pipeline-job-queue
 BATCH_JOB_DEFINITION=mvp-pipeline-job
 
 # Development/Testing flags

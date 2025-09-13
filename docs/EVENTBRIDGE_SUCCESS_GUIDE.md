@@ -30,7 +30,7 @@ DynamoDB (job tracking)
 - **Records**: Successfully storing job data
 
 ### AWS Batch
-- **Queue**: `mvp-development-queue`
+- **Queue**: `mvp-pipeline-job-queue`
 - **Compute Environment**: `mvp-development-compute`
 - **Status**: ✅ Ready for job execution
 
@@ -137,7 +137,7 @@ aws dynamodb scan --table-name founderdash-mvp-development-jobs --region us-east
 
 ### Monitor Batch Jobs
 ```bash
-aws batch list-jobs --job-queue mvp-development-queue --region us-east-2
+aws batch list-jobs --job-queue mvp-pipeline-job-queue --region us-east-2
 ```
 
 ### CloudWatch Logs

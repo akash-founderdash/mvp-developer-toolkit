@@ -287,3 +287,16 @@ For support and questions:
 - **v1.1.0**: Added comprehensive testing and monitoring
 - **v1.2.0**: Enhanced container with development tools
 - **v1.3.0**: Added SNS notifications and status tracking
+
+
+# Manual update of EventBridge targets
+./scripts/update-eventbridge-target.sh
+
+# Deploy infrastructure and update EventBridge automatically  
+make deploy-all
+
+# Update EventBridge targets only
+make update-eventbridge
+
+# Test the complete system
+./scripts/eventbridge-test-cli.sh send
